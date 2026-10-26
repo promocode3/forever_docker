@@ -34,7 +34,7 @@ fn built_in(value: Option<&'static str>, default: &str) -> String {
 impl Default for Server {
     fn default() -> Self {
         Self {
-            name: built_in(option_env!("FOREVER_SERVER_NAME"), "Forever"),
+            name: built_in(option_env!("FOREVER_SERVER_NAME"), "Forever Local"),
             portal: "trinity.actual.battle.net".into(),
             address: built_in(option_env!("FOREVER_SERVER_ADDRESS"), "127.0.0.1"),
             bnet_port: 1119,
