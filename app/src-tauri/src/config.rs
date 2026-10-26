@@ -173,7 +173,7 @@ impl Session {
 /// Language the client was installed with, from the Tags column of .build.info next to the game folder.
 pub fn installed_locale(game_dir: &Path) -> Option<String> {
     let info = std::fs::read_to_string(game_dir.parent()?.join(".build.info")).ok()?;
-    let line = info.lines().find(|l| l.contains("wow_classic_beta"))?;
+    let line = info.lines().find(|l| l.contains("wowf"))?;
     LOCALES.iter().find(|l| line.contains(&format!("{l} text"))).map(|l| l.to_string())
 }
 
@@ -186,14 +186,14 @@ pub fn installed_version(game_dir: &Path) -> Option<String> {
     let product = header.iter().position(|c| *c == "Product")?;
     lines
         .map(|l| l.split('|').collect::<Vec<_>>())
-        .find(|row| row.get(product) == Some(&"wow_classic_beta"))
+        .find(|row| row.get(product) == Some(&"wowf"))
         .and_then(|row| row.get(version).map(|v| v.to_string()))
         .filter(|v| !v.is_empty())
 }
 
 #[cfg(not(target_os = "macos"))]
 fn game_binary(dir: &Path) -> PathBuf {
-    dir.join("WowB.exe")
+    dir.join("Wow.exe")
 }
 
 /// Re-signed copy of the game app that the launcher starts on macOS (see macos.rs), next to the original.
@@ -225,7 +225,7 @@ fn detect_game_dir() -> Option<String> {
     let mut candidates: Vec<PathBuf> = Vec::new();
     #[cfg(windows)]
     for root in ["C:\\Program Files (x86)", "C:\\Program Files", "D:\\", "D:\\Games", "E:\\", "E:\\Games"] {
-        candidates.push(Path::new(root).join("World of Warcraft").join("_classic_beta_"));
+        candidates.push(Path::new(root).join("World of Warcraft").join("_forever_"));
     }
     #[cfg(target_os = "macos")]
     for root in ["/Applications/World of Warcraft", &home().join("Applications/World of Warcraft").to_string_lossy()] {
