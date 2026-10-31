@@ -74,7 +74,7 @@ impl Default for LinuxSettings {
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     pub server: Server,
-    /// The `_classic_beta_` folder (contains WowB.exe, or the game .app on macOS).
+    /// The Forever game folder (`_classic_beta_`/`WowB.exe` or `_forever_`/`Wow.exe`).
     pub game_dir: String,
     /// textLocale / audioLocale, e.g. frFR.
     pub locale: String,
@@ -146,7 +146,7 @@ impl Settings {
         write_private(&config_dir().join("settings.json"), &serde_json::to_vec_pretty(self).unwrap())
     }
 
-    /// WowB.exe (Windows, Linux/Wine) or the game .app (macOS).
+    /// WowB.exe or Wow.exe (Windows/Linux) or the game .app (macOS).
     pub fn exe(&self) -> PathBuf {
         game_binary(Path::new(&self.game_dir))
     }
@@ -173,7 +173,7 @@ impl Session {
 /// Language the client was installed with, from the Tags column of .build.info next to the game folder.
 pub fn installed_locale(game_dir: &Path) -> Option<String> {
     let info = std::fs::read_to_string(game_dir.parent()?.join(".build.info")).ok()?;
-    let line = info.lines().find(|l| l.contains("wowf"))?;
+    let line = info.lines().find(|l| l.contains("wowf") || l.contains("wow_classic_beta"))?;
     LOCALES.iter().find(|l| line.contains(&format!("{l} text"))).map(|l| l.to_string())
 }
 
@@ -186,14 +186,15 @@ pub fn installed_version(game_dir: &Path) -> Option<String> {
     let product = header.iter().position(|c| *c == "Product")?;
     lines
         .map(|l| l.split('|').collect::<Vec<_>>())
-        .find(|row| row.get(product) == Some(&"wowf"))
+        .find(|row| matches!(row.get(product), Some(&"wowf") | Some(&"wow_classic_beta")))
         .and_then(|row| row.get(version).map(|v| v.to_string()))
         .filter(|v| !v.is_empty())
 }
 
 #[cfg(not(target_os = "macos"))]
 fn game_binary(dir: &Path) -> PathBuf {
-    dir.join("Wow.exe")
+    let wow = dir.join("Wow.exe");
+    if wow.exists() { wow } else { dir.join("WowB.exe") }
 }
 
 /// Re-signed copy of the game app that the launcher starts on macOS (see macos.rs), next to the original.
@@ -225,7 +226,11 @@ fn detect_game_dir() -> Option<String> {
     let mut candidates: Vec<PathBuf> = Vec::new();
     #[cfg(windows)]
     for root in ["C:\\Program Files (x86)", "C:\\Program Files", "D:\\", "D:\\Games", "E:\\", "E:\\Games"] {
-        candidates.push(Path::new(root).join("World of Warcraft").join("_forever_"));
+        let wow_root = Path::new(root).join("World of Warcraft");
+        candidates.push(wow_root.join("_forever_"));
+        candidates.push(wow_root.join("_classic_beta_"));
+        let local_root = Path::new(root).join("World of Warcraft Forever Local");
+        candidates.push(local_root.join("_classic_beta_"));
     }
     #[cfg(target_os = "macos")]
     for root in ["/Applications/World of Warcraft", &home().join("Applications/World of Warcraft").to_string_lossy()] {
